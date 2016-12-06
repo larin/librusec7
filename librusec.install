@@ -1,0 +1,673 @@
+<?php
+/**
+ * @file
+ * Install, update and uninstall functions for the LIBRUSEC library module.
+ */
+
+// Структура базы данных, с комментариями и замечаниями. 
+function librusec_schema() {
+return [
+// Книги
+'libbook' => [
+  'description' => 'Основная информация о файлах книг',
+  'fields' => [
+    'bid' => 		['description' => 'PK', 'type' => 'serial',  'not null' => TRUE],
+    'FileSize' => 	['description' => 'Размер файла', 'type' => 'int',  'not null' => TRUE, 'default' => 0],
+    'Time' => 		['description' => 'Время появления файла', 'type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP'],
+    'Title' => 		['description' => 'Название книги', 'type' => 'varchar', 'length' => '254', 'not null' => TRUE, 'default' => ''],
+    'Title1' => 	['description' => 'Дополнение к названию книги, полное: Title [Title1]', 'type' => 'varchar', 'length' => '254', 'not null' => TRUE, 'default' => '', ],
+    'Lang' => 		['description' => 'Язык', 'type' => 'char', 'length' => '2', 'not null' => TRUE, 'default' => 'ru'],
+    'FileType' => 	['description' => 'Тип файла', 'type' => 'char', 'length' => '4', 'not null' => TRUE],
+    'Year' => 		['description' => 'Год издания', 'type' => 'int', 'size' => 'small', 'not null' => TRUE, 'default' => 0, ],
+    'Year1' => 		['description' => 'Год написания', 'type' => 'int', 'size' => 'small', 'not null' => TRUE, 'default' => 0, ],
+    'Deleted' => 	['description' => 'Статус, битмаска, если не 0, то файл недоступен по той или иной причине', 'type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => '0', ],
+    'Ver' => 		['description' => 'Версия файла','type' => 'varchar', 'length' => '8', 'not null' => TRUE, 'default' => '0', ],
+    'FileAuthor' => ['description' => 'Создатель файла', 'type' => 'varchar', 'length' => '64', 'not null' => TRUE, ],
+    'keywords' => 	['description' => 'Теги', 'type' => 'varchar', 'length' => '255', 'not null' => FALSE, 'default' => ''],
+    'Blocked' => 	['description' => 'Флаг блокировки, может быть использован для временного запрета выкачки', 'type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => '', ],
+    'md5' => 		['description' => 'Хеш MD5 для неповторимости', 'type' => 'char', 'length' => '32', 'not null' => TRUE, 'default' => ''],
+    'Broken' => 	['description' => 'Плохой, битый файл', 'type' => 'char', 'length' => '1','not null' => TRUE, 'default' => ''],
+    'Modified' => 	['description' => 'Время последнего изменения связанных сущностей', 'type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP' ],
+    'authors' => 	['description' => 'Количество авторов', 'type' => 'int', 'not null' => TRUE, 'default' => 1],
+  ],
+  'primary key' => ['bid'],
+  'unique keys' => ['md5' => ['md5']],
+  'indexes' => [
+    'Deleted' => ['Deleted'],
+    'FileAuthor' => ['FileAuthor'],
+    'FileSize' => ['FileSize'],
+    'FileType' => ['FileType'],
+    'Lang' => ['Lang'],
+    'Time' => ['Time'],
+    'Title' => ['Title'],
+    'Title1' => ['Title1'],
+    'Year' => ['Year'],
+  ]
+],
+'libjoinedbooks' => [  
+  'description' => 'Объединённве книги, замена дублей или плохих версий',
+  'fields' => [
+    'BadId' =>  ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+    'GoodId' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+  ],
+  'primary key' => ['Id'],
+  'unique keys' => ['BadId' => ['BadId']],
+  'indexes' => [
+    'GoodId' => ['GoodId'],
+    'Time' => ['Time']
+  ],
+],
+'librel' => [
+  'description' => 'Связь между книгами, одна перевод другой и т.п.',
+  'fields' => [
+    'bid1' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+    'bid2' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+    'relation' => [ 'description' => 'Audio, Translation,...', 'type' => 'char', 'length' => '1', 'not null' => TRUE, ],
+  ],
+  'primary key' => ['bid1', 'bid2'],
+  'indexes' => ['bid2' => ['bid2']],
+],
+
+// Атрибуты файла, вынесенные из libbook по различным причинам. Все начинаются с bid - foreing key
+'libtoc' => [
+  'description' => 'Кэш оглавлений и обложек, парстится из fb2',
+  'fields' => [
+    'bid' => ['type' => 'int', 'not null' => TRUE],
+    'TOC' => ['type' => 'text', 'size' => 'big', 'not null' => TRUE],
+    'Cover' => ['type' => 'varchar', 'length' => '255'],
+    'Time' => ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP']
+  ],
+  'primary key' => ['bid'],
+],
+'libcacheid' => [
+  'fields' => [
+    'bid' => ['type' => 'int', 'not null' => TRUE],
+    'Id' => [ 'type' => 'varchar', 'length' => '127', 'not null' => TRUE, ],
+  ],
+  'primary key' => ['bid'],
+  'indexes' => ['Id' => ['Id']],
+],
+'libsrclang' => [
+  'description' => 'Язык оригинала, есть только у переводов',
+  'fields' => [
+    'bid' => ['type' => 'int',  'not null' => TRUE],
+    'SrcLang' => ['type' => 'char', 'length' => '2', 'not null' => TRUE, 'default' => ''],
+   ],
+  'primary key' => ['bid'],
+  'indexes' => ['SrcLang' => ['SrcLang']],
+],
+'libISBN' => [
+  'fields' => [
+    'bid' =>  ['type' => 'int', 'not null' => TRUE],
+    'ISBN' => ['type' => 'char', 'length' => '20', 'not null' => TRUE],
+  ],
+  'primary key' => ['bid', 'ISBN'],
+  'indexes' => ['ISBN' => ['ISBN']],
+],
+'libcustominfo' => [
+  'description' => 'Всё что нашлось в fb2-custominfo',
+  'fields' => [
+    'id' =>   ['type' => 'serial', 'not null' => TRUE],
+    'bid' =>  ['type' => 'int', 'not null' => TRUE, ],
+    'type' => ['type' => 'varchar', 'length' => '99', 'not null' => TRUE],
+    'info' => ['type' => 'text', 'not null' => TRUE],
+  ],
+  'primary key' => ['id'],
+  'indexes' => ['bid' => ['bid'], 'info' => ['info']],
+],
+'libpublisher' => [
+  'description' => 'Издательство',
+  'fields' => [
+    'bid' => ['type' => 'int', 'not null' => TRUE],
+    'publisher' => ['type' => 'varchar', 'length' => '254', 'not null' => TRUE],
+  ],
+  'primary key' => ['bid'],
+  'indexes' => ['publisher' => ['publisher']],
+],
+'libdate' => [
+  'description' => 'Дата издания, датой и вольной строкой',
+  'fields' => [
+    'bid' => ['type' => 'int', 'not null' => TRUE],
+    'date' => ['type' => 'date', 'not null' => FALSE, ],
+    'str' => [ 'type' => 'varchar', 'length' => '50', 'not null' => TRUE, ],
+  ],
+  'primary key' => ['bid'],
+], 
+'libdocumentinfo' => [
+  'description' => 'fb2 document-info в base64',
+  'fields' => [
+    'bid' =>  ['type' => 'int', 'not null' => TRUE],
+    'info' => ['type' => 'varchar', 'length' => '9999', 'not null' => TRUE],
+  ],
+  'primary key' => ['bid'],
+],
+'libstyle' => [
+  'description' => 'CSS из fb2',
+  'fields' => [
+    'bid' => ['type' => 'int', 'not null' => TRUE],
+    'style' => ['type' => 'varchar', 'length' => '10000', 'not null' => TRUE],
+  ],
+  'primary key' => ['bid'],
+],
+
+// Авторы
+'libavtors' => [
+  'description' => 'Авторы, переводчики, иллюстраторы, составители и другие хорошие люди',
+  'fields' => [
+    'aid' => 		['type' => 'serial',  'not null' => TRUE],
+    'FirstName' =>  ['type' => 'varchar', 'length' => '99', 'not null' => TRUE, 'default' => ''],
+    'MiddleName' => ['type' => 'varchar', 'length' => '99', 'not null' => TRUE, 'default' => ''],
+    'LastName' => 	['type' => 'varchar', 'length' => '99', 'not null' => TRUE, 'default' => ''],
+    'NickName' => 	['type' => 'varchar', 'length' => '33', 'not null' => TRUE, 'default' => ''],
+    'NoDonate' => 	['type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => ''],
+    'uid' => 		['type' => 'int', 'not null' => TRUE, 'default' => 0],
+    'email' => 	    ['type' => 'varchar', 'length' => '255', 'not null' => TRUE, 'default' => ''],
+    'homepage' => 	['type' => 'varchar', 'length' => '255', 'not null' => TRUE, 'default' => ''],
+    'Blocked' => 	['type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => ''],
+    'public' =>     ['type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => ''],
+    'pna' =>        ['description' => 'UNIMARC.personal name $a', 'type' => 'varchar', 'length' => '254', 'not null' => TRUE, 'default' => ''],
+    'pnb' =>        ['description' => 'UNIMARC.personal name $b', 'type' => 'varchar', 'length' => '254', 'not null' => TRUE, 'default' => ''],
+    'pnc' =>        ['description' => 'UNIMARC.personal name $c', 'type' => 'varchar', 'length' => '254', 'not null' => TRUE, 'default' => ''],
+    'pnd' =>        ['description' => 'UNIMARC.personal name $d', 'type' => 'varchar', 'length' => '254', 'not null' => TRUE, 'default' => ''],
+    'pnf' =>        ['description' => 'UNIMARC.personal name $f', 'type' => 'varchar', 'length' => '254', 'not null' => TRUE, 'default' => ''],
+    'png' =>        ['description' => 'UNIMARC.personal name $g', 'type' => 'varchar', 'length' => '254', 'not null' => TRUE, 'default' => ''],
+    'lang' => 		['description' => 'Язык имени автора', 'type' => 'char', 'length' => '2', 'not null' => TRUE,  'default' => ''],
+    'main' => 		['description' => 'Основное имя', 'type' => 'int', 'not null' => TRUE, 'default' => 0],
+    'gender' => 	['description' => 'Male,Female,Group', 'type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => '' ],
+  ],
+  'primary key' => ['aid'],
+  'indexes' => [
+    'FirstName' => [['FirstName', 20]],
+    'LastName' => [['LastName', 20]],
+    'NoDonate' => ['NoDonate'],
+    'Email' => ['Email'],
+    'Homepage' => ['Homepage'],
+    'main' => ['main'],
+    'name' => ['pnc'],
+    'NickName' => ['NickName'],
+    'NoDonate' => ['NoDonate'],
+    'pna' => ['pna'],
+    'png' => ['png'],
+    'public' => ['public'],
+    'shortname' => ['pnd'],
+    'uid' => ['uid'],
+  ],
+],
+'libavtor' => [
+  'description' => 'Классификатор Автор-Книга-Роль (автор/переводчик/иллючстратор/составитель/...)',
+  'fields' => [
+     'bid' =>  ['type' => 'int',  'not null' => TRUE, 'default' => 0],
+     'aid' =>  ['type' => 'int',  'not null' => TRUE, 'default' => 0],
+     'role' => ['type' => 'char', 'size' => 1, 'not null' => TRUE, 'default' => 'a'],
+  ],
+  'indexes' => ['aid' => ['aid'], 'bid' => ['bid']],
+],	
+'libsurname' => [
+  'description' => 'Псевдонимы и групповые авторы',
+  'fields' => [
+    'aid1' => ['type' => 'int',  'not null' => TRUE],
+    'aid2' => ['type' => 'int',  'not null' => TRUE],
+    'role' => ['type' => 'char', 'length' => '1','not null' => TRUE, 'default' => '']
+  ],
+  'unique keys' => ['a12' => ['aid1', 'aid2']],
+  'indexes' => ['aid1' => ['aid1'], 'aid2' => ['aid2']]
+],
+
+// Жанры
+'libgenres' => [
+  'description' => 'Список жанров',
+  'fields' => [
+     'gid' =>  ['type' => 'serial',  'not null' => TRUE],
+     'code' => ['type' => 'varchar', 'length' => '45', 'not null' => TRUE, 'default' => ''],
+     'gdesc' => ['type' => 'varchar', 'length' => '99', 'not null' => TRUE, 'default' => ''],
+     'edesc' => ['type' => 'varchar', 'length' => '99', 'not null' => TRUE, 'default' => ''],
+  ],	 
+  'primary key' => ['gid'],
+  'unique keys' => ['code' => 'code'],
+  'indexes' => ['edesc' => ['edesc'], 'gdesc' => ['gdesc']],
+],
+'libgenre' => [
+  'description' => 'Классификатор Жанр-Книга',
+  'fields' => [
+    'bid' => ['type' => 'int',  'not null' => TRUE, 'default' => 0, 'disp-width' => '10'],
+    'gid' => ['type' => 'int',  'not null' => TRUE, 'default' => 0, 'disp-width' => '10']
+  ],
+  'primary key' => ['bid', 'gid'],
+  'indexes' => ['gid' => ['gid']],
+],
+'libgenremeta' => [
+  'description' => 'Иерархия жанров/метажанры',
+  'fields' => [
+    'gid' =>  ['type' => 'int',  'not null' => TRUE, 'default' => 0],
+    'gidm' => ['type' => 'int',  'not null' => TRUE, 'default' => 0]
+  ],
+  'unique keys' => ['g' => ['gid', 'gidm']]
+],
+
+// Авторские и издательские серии
+'libseqs' => [
+  'description' => 'Список форм (1-100) и названий серий',
+  'fields' => [
+    'sid' => ['type' => 'serial', 'not null' => TRUE],
+    'seqname' => ['type' => 'varchar', 'length' => '254', 'not null' => TRUE],
+    'parent' =>  ['description' => 'родительский сериал', 'type' => 'int', 'not null' => TRUE, 'default' => 0],
+    'nn' => 	 ['description' => 'место в родительском сериале', 'type' => 'int', 'not null' => TRUE, 'default' => 0],
+    'good' =>    ['description' => 'правильная замена для ошибочного сериала', 'type' => 'int',  'not null' => TRUE, 'default' => 0],
+    'lang' => 	 ['description' => 'язык написания названия', 'type' => 'char', 'length' => '2', 'not null' => TRUE, 'default' => 'ru'],
+    'type' => 	 ['description' => 'а - авторский, p - издательский', 'type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => 'a'],
+  ],
+  'primary key' => ['sid'],
+  'unique keys' => ['seqname' => ['seqname']],
+  'indexes' => ['parent' => ['parent']],
+],
+'libseq' => [
+  'description' => 'Классификатор книга-серия',
+  'fields' => [
+    'bid' => ['type' => 'int', 'not null' => TRUE],
+    'sid' => ['type' => 'int', 'not null' => TRUE],
+    'sn' =>  ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+    'sort' => ['description' => 'место при сортировке по порядку', 'type' => 'numeric', 'not null' => TRUE, 'default' => 9223372036854775807, 'precision' => '28', 'scale' => '0'],
+  ],
+  'unique keys' => ['bs' => ['bid', 'sid']],
+  'indexes' => ['bid' => ['bid'], 'sid' => ['sid'], 'sort' => ['sort']]
+],
+
+// Журналы
+'libmag' => [
+  'description' => 'Распределение книг по журналам',
+  'fields' => [
+    'bid' => ['type' => 'int',  'not null' => TRUE],
+    'mid' => ['type' => 'int',  'not null' => TRUE],
+    'y' =>   ['type' => 'int',  'not null' => TRUE],
+    'm' =>   ['type' => 'int',  'not null' => TRUE],
+  ],
+  'unique keys' => ['bmy' => ['bid', 'm', 'y', 'mid']],
+  'indexes' => ['bid' => ['bid'],'my' => ['mid', 'y']]
+],
+'libmags' => [
+  'description' => 'Список журналов',
+  'fields' => [
+    'mid' =>   ['description' => 'Magazine ID', 'type' => 'serial', 'not null' => TRUE],
+    'class' => ['description' => 'Газета/Журнал', 'type' => 'char', 'length' => '9', 'not null' => TRUE],
+    'title' => ['type' => 'varchar', 'length' => '254', 'not null' => TRUE],
+    'firstyear' => ['type' => 'int',  'not null' => TRUE],
+    'lastyear' => ['type' => 'int',  'not null' => TRUE],
+    'peryear' => ['type' => 'int',  'not null' => TRUE, 'default' => 12],
+  ],
+  'primary key' => ['mid'],
+  'unique keys' => ['title' => ['title']],
+  'indexes' => ['class' => ['class']],
+],
+
+// Впечатления, оценки, рейтинги
+'libpolka' => [
+  'description' => 'Впечатления пользователей о книгах',
+  'fields' => [
+     'pid' =>   ['type' => 'serial', 'not null' => TRUE],
+     'Time' => ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP'],
+     'bid' =>  ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+     'type' => ['description' => 'a,b,s,m', 'type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => 'b'],
+     'uid' =>  ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+     'Text' => ['type' => 'text', 'not null' => TRUE],
+     'Flag' => ['type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => '']
+  ],
+  'primary key' => ['pid'],
+  'unique keys' => ['btu' => ['bid', 'type', 'uid']],
+  'indexes' => ['text' => [['Text', 50]], 'uid' => ['uid']]
+],
+'libquality' => [    
+  'description' => 'Оценка качества файла',
+  'fields' => [
+    'bid' => ['type' => 'int',  'not null' => TRUE],
+    'uid' => ['type' => 'int',  'not null' => TRUE],
+    'q' => ['type' => 'char', 'length' => 1, 'not null' => TRUE]
+  ],
+  'indexes' => [
+     'uid' => ['uid'],
+     'bid' => ['bid'],
+     'q' => ['q']
+   ],
+   'unique keys' => ['uq' => ['bid', 'uid']],
+],
+'librate' => [
+  'description' => 'Оценки книг по пятибальной шкале',
+  'fields' => [
+    'bid' =>  ['type' => 'int',  'not null' => TRUE],
+    'uid' =>  ['type' => 'int',  'not null' => TRUE],
+    'Rate' => ['type' => 'char', 'length' => '1', 'not null' => TRUE],
+    'Time' => ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP']
+  ],
+  'primary key' => ['bid', 'uid'],
+  'indexes' => ['UserId' => ['uid']]
+],
+'librateavg' => [
+ 'description' => 'Кэщ усредненных оценок',
+  'fields' => [
+    'bid' => ['type' => 'int',  'not null' => TRUE],
+    'rateavg' => ['type' => 'int',  'not null' => TRUE],
+    'v' => ['type' => 'int', 'not null' => TRUE],
+    'n' => ['type' => 'int', 'not null' => TRUE],
+  ],
+  'primary key' => ['bid'],
+  'indexes' => ['rateavg' => ['rateavg'], 'v' => ['v']]
+],
+
+// Настройки пользователя
+'libuserblackgenre' => [
+  'description' => 'Чёрный списов жанров',
+  'fields' => [
+    'uid' => ['type' => 'int',  'not null' => TRUE],
+    'gid' => ['type' => 'int',  'not null' => TRUE],
+  ],
+  'primary key' => ['uid', 'gid']
+],
+'libuserlangs' => [
+  'description' => 'Фильтр по языкам книг',
+  'fields' => [
+    'uid' => ['type' => 'int',  'not null' => TRUE],
+    'langs' => ['type' => 'varchar', 'length' => '255', 'not null' => TRUE]
+  ],
+  'primary key' => ['uid'],
+],
+'libuseropt' => [
+  'description' => 'Пользовательские опции - сортировки, формат выкачки, ...',
+  'fields' => [
+  'uid' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+  'Opt' => ['type' => 'char', 'length' => '1', 'not null' => TRUE],
+  'Value' => ['type' => 'char', 'length' => '4', 'not null' => TRUE]
+  ],
+  'indexes' => ['uid' => ['uid']],
+  'unique keys' => ['uo' => ['Opt', 'uid']],
+],
+'libsets' => [
+  'description' => 'Пользовательские настройки, не влезающие в libuseropt, пока только адрес kindle',
+  'fields' => [ 
+    'uid' =>   ['type' => 'int', 'not null' => TRUE],
+    'name' =>  ['type' => 'char', 'length' => '10', 'not null' => TRUE],
+    'value' => ['type' => 'varchar', 'length' => '254', 'not null' => TRUE],
+  ],
+  'primary key' => ['uid', 'name'],
+],
+
+// Связь с друпальными нодами
+'libnode' => [
+  'description' => 'Аннотации, биографии, обисания серий и т.п - ноды связанные с сущностями библиотеки',
+  'fields' => [
+    'nid' =>  ['type' => 'int', 'not null' => TRUE],
+    'type' => ['type' => 'char', 'length' => '1', 'not null' => TRUE],
+    'id' =>   ['type' => 'int', 'not null' => TRUE],
+  ],
+  'primary key' => ['nid'],
+  'indexes' => ['id' => ['id']],
+],
+'libforum' => [
+  'description' => 'темы на форуме обсуждающие книги или авторов',
+  'fields' => [
+    'nid' =>  ['description' => 'тема на форуме', 'type' => 'int', 'not null' => TRUE],
+    'id' =>   ['description' => 'aid/bid/sid', 'type' => 'int', 'not null' => TRUE],
+    'type' => ['description' => 'a/b/s', 'type' => 'char', 'length' => '1', 'not null' => TRUE],
+  ],
+  'unique keys' => ['nid' => ['nid']],
+  'indexes' => ['id' => ['id']],
+],
+'libxnode' => [
+ 'description' => 'Упоминания книг в блогофорумах',
+  'fields' => [
+    'nid' =>  ['type' => 'int',  'not null' => TRUE],
+    'id' =>   ['type' => 'int',  'not null' => TRUE],
+    'type' => ['type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => ''],
+  ],
+  'unique keys' => ['nid' => ['nid', 'id', 'type']],
+  'indexes' => ['id' => ['id']],
+],
+
+// Отслеживание изменений
+'libsi' => [
+  'description' => 'Произведения самиздата',
+  'fields' => [
+    'uid' =>         ['type' => 'int',  'not null' => TRUE],
+    'siid' =>        ['description' => 'папка автора на самиздате', 'type' => 'varchar', 'length' => '100', 'not null' => TRUE],
+    'file' =>        ['description' => 'документ внутри папки, samlib.ru/X/SIID/FILE.shtml','type' => 'varchar', 'length' => '767', 'not null' => TRUE],
+    'description' => ['type' => 'varchar', 'length' => '10000', 'not null' => TRUE],
+    'comment' =>     ['type' => 'varchar', 'length' => '100', 'not null' => TRUE, 'default' => '' ],
+    'size' =>        ['type' => 'char', 'length' => '10', 'not null' => TRUE],
+    'name' =>        ['type' => 'varchar', 'length' => '255', 'not null' => TRUE],
+    'changed' =>     ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP' ],
+    'server' =>      ['description' => 'z/a: самиздат/artofwar', 'type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => 'z'],
+  ],
+  'primary key' => ['uid', 'siid', 'file', 'server'],
+  'indexes' => ['changed' => ['changed'], 'siid' => ['siid']],
+],
+'libsiname' => [
+  'description' => 'Авторы самиздата',
+  'fields' => [
+    'siid' =>   ['type' => 'varchar', 'length' => '100', 'not null' => TRUE],
+    'name' =>   ['type' => 'varchar', 'length' => '1000', 'not null' => TRUE ],
+    'time' =>   ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP'],
+    'server' => ['type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => 'z'],
+  ],
+  'primary key' => ['siid']
+],
+'libwatch' => [
+  'description' => 'Список объектов, отслеживаемых пользователем',
+  'fields' => [
+    'uid' =>  ['type' => 'int',  'not null' => TRUE],
+    'type' => ['description' => 'a/b/m/s', 'type' => 'char', 'length' => '1', 'not null' => TRUE],
+    'id' =>   ['description' => 'aid/bid/sid/mid', 'type' => 'int', 'not null' => TRUE],
+  ],
+  'primary key' => ['uid', 'type', 'id'],
+  'indexes' => ['id' => ['id']],
+],
+'libwatchact' => [
+ 'description' => 'Интересное событие',
+  'fields' => [
+    'uid' =>  ['type' => 'int',  'not null' => TRUE],
+    'time' => ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP'],
+    'ActionID' => ['type' => 'int', 'not null' => TRUE],
+    'comment' => ['type' => 'varchar', 'length' => '999', 'not null' => TRUE],
+    'type' => ['type' => 'char', 'length' => '1', 'not null' => TRUE],
+    'id' => ['type' => 'int',  'not null' => TRUE],
+  ],
+  'indexes' => ['id' => ['id']],
+],
+
+// сканирование и вычитка, /ocr
+'libocr' => [
+  'description' => 'Книгм в работе',
+  'fields' => [
+    'nid' =>     ['type' => 'int',  'not null' => TRUE],
+    'title' =>   ['type' => 'varchar', 'length' => '255', 'not null' => TRUE],
+    'title1' =>  ['type' => 'varchar', 'length' => '254', 'not null' => TRUE],
+    'avtor' =>   ['type' => 'varchar', 'length' => '255', 'not null' => TRUE, 'default' => ''],
+    'year' =>    ['type' => 'int', 'size' => 'small', 'not null' => TRUE, 'default' => 0],
+    'isbn' =>    ['type' => 'varchar', 'length' => '20', 'not null' => TRUE, 'default' => ''],
+    'library' => ['type' => 'varchar', 'length' => '255', 'not null' => TRUE],
+    'bid' =>     ['type' => 'int',  'not null' => TRUE, 'default' => 0],
+    'LastName' =>['type' => 'varchar', 'length' => '99', 'not null' => TRUE],
+    'aid' =>     ['type' => 'int',  'not null' => TRUE],
+    'gid' =>     ['type' => 'int',  'not null' => TRUE],
+  ],
+  'primary key' => ['nid'],
+  'indexes' => [
+    'aid' => ['aid'],
+    'gid' => ['gid'],
+    'LastName' => ['LastName'],
+    'title' => ['title'],
+    'year' => ['year'],
+  ],
+],
+'libocrbl' => [
+  'description' => 'Black list',
+  'fields' => [
+    'uid' => ['type' => 'int',  'not null' => TRUE],
+    'nid' => ['type' => 'int',  'not null' => TRUE],
+  ],
+  'unique keys' => ['uid' => ['uid', 'nid']],
+  'indexes' => ['nid' => ['nid']],
+],
+'libocrjob' => [
+  'fields' => [
+    'nid' =>  ['type' => 'int',  'not null' => TRUE],
+    'uid' =>  ['type' => 'int',  'not null' => TRUE],
+    'job' =>  ['type' => 'int',  'not null' => TRUE],
+    'time' => ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP', ],
+  ],
+  'unique keys' => ['all' => ['nid', 'uid', 'job']],
+],
+
+// Логи
+'libactions' => [
+  'description' => 'Лог деятельности пользователей, с возможностью отката',
+  'fields' => [
+    'ActionID' =>   ['type' => 'serial', 'not null' => TRUE, 'description' => t('Primary Key')],
+    'name' =>       ['type' => 'varchar', 'length' => 60, 'not null' => TRUE],
+    'Time' =>       ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP'],
+    'ActionSQL'  => ['type' => 'text'],
+    'ActionDesc' => ['type' => 'text'],
+    'ActionUndo' => ['type' => 'text'],
+    'bid' =>        ['type' => 'int',  'not null' => TRUE, 'default' => 0],
+  ],
+  'primary key' => ['ActionID'],
+  'indexes' => ['bid' => ['bid'], 'Time' => ['Time'], 'name' => ['name', 'Time']],
+],
+'libjob' => [
+  'description' => 'Краткий лог работы пользователя, для вычисления пользы',
+  'fields' => [
+    'uid' => ['type' => 'int',  'not null' => TRUE],
+    'bid' => ['type' => 'int',  'not null' => TRUE],
+    'action' => ['description' => 'Upload, Edit book, Correct meta', 'type' => 'binary', 'length' => '1', 'not null' => TRUE],
+  ],
+  'primary key' => ['uid', 'bid'],
+  'indexes' => [
+    'action' => ['action'],
+    'bid' => ['bid'],
+    'uid' => ['uid'],
+  ],
+],
+'liblog' => [
+  'description' => 'Скачанное анонимами',
+  'fields' => [
+    'bid' =>  ['type' => 'int', 'not null' => TRUE],
+    'Time' => ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP'],
+    'ip' =>   ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+  ],  
+  'indexes' => ['Time' => ['Time'], 'ip' => ['bid']]
+],
+'libreaded' => [
+  'description' => 'Скачанные зарегистрированными пользователями книги',
+  'fields' => [
+    'bid' =>  ['type' => 'int', 'not null' => TRUE],
+    'uid' => ['type' => 'int',  'not null' => TRUE],
+    'Time' => ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP']
+  ],
+  'primary key' => ['bid', 'uid'],
+  'indexes' => ['Time' => ['Time'], 'UserId' => ['uid']]
+],
+'libsearchlog' => [
+  'description' => 'Лог поисков',
+  'fields' => [
+    'id' =>   ['type' => 'serial', 'not null' => TRUE],
+    'uid' =>  ['type' => 'int',  'not null' => TRUE ],
+    'time' => ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP'],
+    'ask' =>  ['type' => 'text','not null' => TRUE],
+  ],
+  'primary key' => ['id'],
+  'indexes' => ['time' => ['time'], 'uid' => ['uid']]  
+],
+
+// Кэши
+'libwords' => [
+  'description' => 'Слова, из которых состоит название книги. Для облегчения поиска.',
+  'fields' => [
+    'bid' => ['type' => 'int',  'not null' => TRUE],
+    'wrd' => ['type' => 'varchar', 'length' => '50', 'not null' => TRUE],
+  ],
+  'unique keys' => ['un' => ['bid', 'wrd']],
+  'indexes' => ['wrd' => ['wrd']],
+],
+'libaname' => [
+  'description' => 'Варианты написания имени автора.',
+  'fields' => [
+    'aid' =>  ['type' => 'int',  'not null' => TRUE],
+    'name' => ['type' => 'varchar', 'length' => '254', 'not null' => TRUE],
+  ],
+  'unique keys' => ['aid' => ['aid', 'name']],
+  'indexes' => ['name' => ['name']],
+],
+'libN' => [
+  'description' => 'Кэш количества скачиваний книги, может быть пересчитан по liblog',
+  'fields' => [
+    'bid' => ['type' => 'int','not null' => TRUE],
+    'N' =>   ['type' => 'int','not null' => TRUE],
+  ],
+  'primary key' => ['bid'],
+],
+'libadvice' => [
+  'description' => 'Кэш советов "люди читавшие эту книгу так же читали...',
+  'fields' => [
+    'bid' =>    ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+    'advice' => ['type' => 'varbinary', 'length' => '10000', 'not null' => TRUE, 'default' => ''],
+    'Time' =>   ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP']
+  ],
+  'primary key' => ['bid'],
+],
+'libmass' => [
+  'description' => 'Архивы для выкачивания нескольких книг одним файлом. Иногда удаётся впарить один архив нескольким пользователям',
+  'fields' => [
+    'ID' => ['type' => 'serial', 'not null' => TRUE],
+    'Time' => ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP'],
+    'Books' => ['type' => 'text'],
+    'N' => ['type' => 'int', 'not null' => TRUE]
+  ],
+  'indexes' => ['iid' => ['ID'],'ibooks' => ['Books']],
+],
+'libstat' => [
+  'description' => 'Аггрегированная по месяцам статискика прочтения',
+  'fields' => [
+    'bid' => ['type' => 'int',  'not null' => TRUE],
+    'Mes' => ['type' => 'char', 'length' => 4, 'not null' => TRUE],
+    'N' => ['type' => 'int',  'not null' => TRUE]
+  ],
+  'unique keys' => ['uq' => ['bid', 'Mes']]
+],
+
+// Финансы
+'libabtr' => [
+  'description' => 'Лог запросов пайпала',
+  'fields' => [
+    'txn_id' => ['type' => 'char', 'length' => '20', 'not null' => TRUE],
+    'uid' =>    ['type' => 'int',  'not null' => TRUE],
+    'sum' =>    ['type' => 'int',  'not null' => TRUE],
+    'system' => ['type' => 'char', 'length' => '8', 'not null' => TRUE],
+    'Time' =>   ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP']
+  ],
+  'primary key' => ['txn_id'],
+  'indexes' => ['system' => ['system'], 'uid' => ['uid']],
+],
+'libsubscription' => [
+  'description' => 'Подписки',
+  'fields' => [
+    'ID' =>  ['type' => 'serial', 'not null' => TRUE],
+    'uid' => ['type' => 'int', 'not null' => TRUE, ],
+    'enddate' => ['type' => 'int',  'not null' => TRUE],
+    'Time' => ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP'],
+  ],
+  'primary key' => ['ID'],
+  'unique keys' => ['ue' => ['uid', 'enddate']],
+  'indexes' => ['uid' => ['uid']],
+],
+'libdonations' => [
+  'description' => 'Полученные пожертвования',
+  'fields' => [
+    'DonateId' => ['type' => 'serial', 'not null' => TRUE],
+    'uid' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+    'Sum' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+    'Type' => ['type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => ''],
+    'aid' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+    'PayType' => ['type' => 'char', 'length' => '10', 'not null' => TRUE, 'default' => ''],
+    'Time' => ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP']
+  ],
+  'primary key' => ['DonateId'],
+],
+];
+}
