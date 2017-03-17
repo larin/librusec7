@@ -7,7 +7,7 @@
 // Структура базы данных, с комментариями и замечаниями. 
 function librusec_schema() {
 return [
-// Книги
+// Книги 
 'libbook' => [
   'description' => 'Основная информация о файлах книг',
   'fields' => [
@@ -17,6 +17,7 @@ return [
     'Title' => 		['description' => 'Название книги', 'type' => 'varchar', 'length' => '254', 'not null' => TRUE, 'default' => ''],
     'Title1' => 	['description' => 'Дополнение к названию книги, полное: Title [Title1]', 'type' => 'varchar', 'length' => '254', 'not null' => TRUE, 'default' => '', ],
     'Lang' => 		['description' => 'Язык', 'type' => 'char', 'length' => '2', 'not null' => TRUE, 'default' => 'ru'],
+    'SrcLang' =>    ['description' => 'Язык оригинала', 'type' => 'char', 'length' => '2', 'not null' => TRUE, 'default' => 'ru'],
     'FileType' => 	['description' => 'Тип файла', 'type' => 'char', 'length' => '4', 'not null' => TRUE],
     'Year' => 		['description' => 'Год издания', 'type' => 'int', 'size' => 'small', 'not null' => TRUE, 'default' => 0, ],
     'Year1' => 		['description' => 'Год написания', 'type' => 'int', 'size' => 'small', 'not null' => TRUE, 'default' => 0, ],
@@ -27,8 +28,9 @@ return [
     'Blocked' => 	['description' => 'Флаг блокировки, может быть использован для временного запрета выкачки', 'type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => '', ],
     'md5' => 		['description' => 'Хеш MD5 для неповторимости', 'type' => 'char', 'length' => '32', 'not null' => TRUE, 'default' => ''],
     'Broken' => 	['description' => 'Плохой, битый файл', 'type' => 'char', 'length' => '1','not null' => TRUE, 'default' => ''],
-    'Modified' => 	['description' => 'Время последнего изменения связанных сущностей', 'type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP' ],
+    'Modified' => 	['description' => 'Время последнего изменения связанных сущностей', 'type' => 'timestamp', 'not null' => TRUE, 'default' => '0000-00-00 00:00:00' ],
     'authors' => 	['description' => 'Количество авторов', 'type' => 'int', 'not null' => TRUE, 'default' => 1],
+	'ReplacedBy' => ['description' => 'Замена', 'type' => 'int', 'not null' => TRUE, 'default' => 0],
   ],
   'primary key' => ['bid'],
   'unique keys' => ['md5' => ['md5']],
@@ -38,24 +40,12 @@ return [
     'FileSize' => ['FileSize'],
     'FileType' => ['FileType'],
     'Lang' => ['Lang'],
+    'SrcLang' => ['SrcLang'],
     'Time' => ['Time'],
     'Title' => ['Title'],
     'Title1' => ['Title1'],
     'Year' => ['Year'],
   ]
-],
-'libjoinedbooks' => [  
-  'description' => 'Объединённве книги, замена дублей или плохих версий',
-  'fields' => [
-    'BadId' =>  ['type' => 'int', 'not null' => TRUE, 'default' => 0],
-    'GoodId' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
-  ],
-  'primary key' => ['Id'],
-  'unique keys' => ['BadId' => ['BadId']],
-  'indexes' => [
-    'GoodId' => ['GoodId'],
-    'Time' => ['Time']
-  ],
 ],
 'librel' => [
   'description' => 'Связь между книгами, одна перевод другой и т.п.',
@@ -86,15 +76,6 @@ return [
   ],
   'primary key' => ['bid'],
   'indexes' => ['Id' => ['Id']],
-],
-'libsrclang' => [
-  'description' => 'Язык оригинала, есть только у переводов',
-  'fields' => [
-    'bid' => ['type' => 'int',  'not null' => TRUE],
-    'SrcLang' => ['type' => 'char', 'length' => '2', 'not null' => TRUE, 'default' => ''],
-   ],
-  'primary key' => ['bid'],
-  'indexes' => ['SrcLang' => ['SrcLang']],
 ],
 'libISBN' => [
   'fields' => [
@@ -161,8 +142,8 @@ return [
     'NickName' => 	['type' => 'varchar', 'length' => '33', 'not null' => TRUE, 'default' => ''],
     'NoDonate' => 	['type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => ''],
     'uid' => 		['type' => 'int', 'not null' => TRUE, 'default' => 0],
-    'email' => 	    ['type' => 'varchar', 'length' => '255', 'not null' => TRUE, 'default' => ''],
-    'homepage' => 	['type' => 'varchar', 'length' => '255', 'not null' => TRUE, 'default' => ''],
+    'Email' => 	    ['type' => 'varchar', 'length' => '255', 'not null' => TRUE, 'default' => ''],
+    'Homepage' => 	['type' => 'varchar', 'length' => '255', 'not null' => TRUE, 'default' => ''],
     'Blocked' => 	['type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => ''],
     'public' =>     ['type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => ''],
     'pna' =>        ['description' => 'UNIMARC.personal name $a', 'type' => 'varchar', 'length' => '254', 'not null' => TRUE, 'default' => ''],
@@ -174,6 +155,7 @@ return [
     'lang' => 		['description' => 'Язык имени автора', 'type' => 'char', 'length' => '2', 'not null' => TRUE,  'default' => ''],
     'main' => 		['description' => 'Основное имя', 'type' => 'int', 'not null' => TRUE, 'default' => 0],
     'gender' => 	['description' => 'Male,Female,Group', 'type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => '' ],
+    'books' => 		['type' => 'int', 'not null' => TRUE, 'default' => 0],
   ],
   'primary key' => ['aid'],
   'indexes' => [
@@ -223,7 +205,7 @@ return [
      'edesc' => ['type' => 'varchar', 'length' => '99', 'not null' => TRUE, 'default' => ''],
   ],	 
   'primary key' => ['gid'],
-  'unique keys' => ['code' => 'code'],
+  'unique keys' => ['code' => ['code']],
   'indexes' => ['edesc' => ['edesc'], 'gdesc' => ['gdesc']],
 ],
 'libgenre' => [
@@ -309,10 +291,11 @@ return [
      'type' => ['description' => 'a,b,s,m', 'type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => 'b'],
      'uid' =>  ['type' => 'int', 'not null' => TRUE, 'default' => 0],
      'Text' => ['type' => 'text', 'not null' => TRUE],
-     'Flag' => ['type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => '']
+     'Flag' => ['type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => ''],
+	 'hastext'=>['type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => 0]
   ],
   'primary key' => ['pid'],
-  'unique keys' => ['btu' => ['bid', 'type', 'uid']],
+  'unique keys' => ['ubt' => ['bid', 'type', 'uid']],
   'indexes' => ['text' => [['Text', 50]], 'uid' => ['uid']]
 ],
 'libquality' => [    
@@ -327,7 +310,7 @@ return [
      'bid' => ['bid'],
      'q' => ['q']
    ],
-   'unique keys' => ['uq' => ['bid', 'uid']],
+   'unique keys' => ['ub' => ['bid', 'uid']],
 ],
 'librate' => [
   'description' => 'Оценки книг по пятибальной шкале',
@@ -376,8 +359,7 @@ return [
   'Opt' => ['type' => 'char', 'length' => '1', 'not null' => TRUE],
   'Value' => ['type' => 'char', 'length' => '4', 'not null' => TRUE]
   ],
-  'indexes' => ['uid' => ['uid']],
-  'unique keys' => ['uo' => ['Opt', 'uid']],
+  'primary key' => ['uid'],
 ],
 'libsets' => [
   'description' => 'Пользовательские настройки, не влезающие в libuseropt, пока только адрес kindle',
@@ -416,6 +398,7 @@ return [
     'nid' =>  ['type' => 'int',  'not null' => TRUE],
     'id' =>   ['type' => 'int',  'not null' => TRUE],
     'type' => ['type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => ''],
+    'text' => ['type' => 'varchar', 'length' => '99', 'not null' => TRUE, 'default' => '' ],
   ],
   'unique keys' => ['nid' => ['nid', 'id', 'type']],
   'indexes' => ['id' => ['id']],
@@ -434,6 +417,7 @@ return [
     'name' =>        ['type' => 'varchar', 'length' => '255', 'not null' => TRUE],
     'changed' =>     ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP' ],
     'server' =>      ['description' => 'z/a: самиздат/artofwar', 'type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => 'z'],
+	'unixtime' =>    ['type' => 'int',  'not null' => TRUE],
   ],
   'primary key' => ['uid', 'siid', 'file', 'server'],
   'indexes' => ['changed' => ['changed'], 'siid' => ['siid']],
@@ -445,8 +429,10 @@ return [
     'name' =>   ['type' => 'varchar', 'length' => '1000', 'not null' => TRUE ],
     'time' =>   ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP'],
     'server' => ['type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => 'z'],
+    'aid' =>    ['type' => 'int',  'not null' => TRUE, 'default' => 0],
   ],
-  'primary key' => ['siid']
+  'primary key' => ['siid'],
+  'indexes' => ['aid' => ['aid']],
 ],
 'libwatch' => [
   'description' => 'Список объектов, отслеживаемых пользователем',
@@ -551,7 +537,7 @@ return [
     'Time' => ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP'],
     'ip' =>   ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
   ],  
-  'indexes' => ['Time' => ['Time'], 'ip' => ['bid']]
+  'indexes' => ['Time' => ['Time'], 'ip' => ['bid', 'ip']]
 ],
 'libreaded' => [
   'description' => 'Скачанные зарегистрированными пользователями книги',
@@ -576,6 +562,24 @@ return [
 ],
 
 // Кэши
+'libcache' => [
+  'fields' => [
+    'cid' =>  ['type' => 'varchar', 'length' => '32', 'not null' => TRUE],
+    'tag' =>  ['type' => 'char', 'length' => '12', 'not null' => TRUE, ],
+    'time' => ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP'],
+    'value' =>['type' => 'longtext', 'not null' => TRUE, 'default' => ''],
+    'raw' =>  ['type' => 'longtext', 'not null' => TRUE, 'default' => ''],
+  ],
+  'primary key' => ['cid'],
+  'indexes' => ['tag' => ['tag'], 'time' => ['time']],
+],
+'libcachegen' => [
+  'fields' => [
+    'gid' => ['type' => 'int', 'not null' => TRUE],
+    'name' => ['name' => 'varchar', 'length' => '40', 'not null' => TRUE, ],
+  ],
+  'indexes' => ['name' => ['name']],
+],
 'libwords' => [
   'description' => 'Слова, из которых состоит название книги. Для облегчения поиска.',
   'fields' => [
@@ -628,9 +632,19 @@ return [
     'Mes' => ['type' => 'char', 'length' => 4, 'not null' => TRUE],
     'N' => ['type' => 'int',  'not null' => TRUE]
   ],
-  'unique keys' => ['uq' => ['bid', 'Mes']]
+  'unique keys' => ['bidmes' => ['bid', 'Mes']]
 ],
-
+'libdubl' => [
+  'description' => 'Возможные дубли',
+  'fields' => [
+    'b1' => ['type' => 'int',  'not null' => TRUE],
+    'b2' => ['type' => 'int',  'not null' => TRUE],
+    'status' => ['type' => 'char', 'length' => 1,  'not null' => TRUE],
+    'ind' => ['type' => 'int', 'not null' => TRUE, 'unsigned' => TRUE, 'size' => 'tiny'],
+  ],
+  'unique keys' => ['b' => ['b1', 'b2']],
+  'indexes' => ['ind' => ['ind'], 'status' => ['status']],
+],
 // Финансы
 'libabtr' => [
   'description' => 'Лог запросов пайпала',
@@ -639,7 +653,8 @@ return [
     'uid' =>    ['type' => 'int',  'not null' => TRUE],
     'sum' =>    ['type' => 'int',  'not null' => TRUE],
     'system' => ['type' => 'char', 'length' => '8', 'not null' => TRUE],
-    'Time' =>   ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP']
+    'Time' =>   ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP'],
+    'admin' =>  ['type' => 'int', 'not null' => TRUE, 'default' => 0],
   ],
   'primary key' => ['txn_id'],
   'indexes' => ['system' => ['system'], 'uid' => ['uid']],
@@ -649,7 +664,7 @@ return [
   'fields' => [
     'ID' =>  ['type' => 'serial', 'not null' => TRUE],
     'uid' => ['type' => 'int', 'not null' => TRUE, ],
-    'enddate' => ['type' => 'int',  'not null' => TRUE],
+    'enddate' => ['type' => 'int',  'unsigned' => TRUE, 'not null' => TRUE],
     'Time' => ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP'],
   ],
   'primary key' => ['ID'],
@@ -669,5 +684,36 @@ return [
   ],
   'primary key' => ['DonateId'],
 ],
+'libsync' => [
+  'description' => 'Синхронизация с другими библиотеками',
+  'fields' => [
+    'syncid' => ['type' => 'serial', 'not null' => TRUE],
+    'id' => [
+      'description' => 'ID книги в другой библиотеке',
+      'type' => 'char',
+      'length' => '10',
+      'not null' => TRUE,
+    ],
+    'uid' => [ 'type' => 'int', 'not null' => TRUE],
+    'status' => [
+      'description' => 'Нужна ли эта книга',
+      'type' => 'char',
+      'length' => '1',
+      'not null' => TRUE,
+    ],
+    'time' => ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP'],
+  ],
+  'primary key' => ['syncid'],
+  'indexes' => ['id' => ['id']],
+],
+
 ];
+}
+
+// реализация hook_install
+function librusec_install() {
+// показываем только впечатления достаточного размера, односложные или пустые не интересны. 
+// Дабы не загрязнять код создаём триггер в базе	
+  db_query("CREATE TRIGGER set_hastext_i BEFORE INSERT ON {libpolka} FOR EACH ROW SET NEW.hastext = LENGTH(NEW.Text) > 42");	
+  db_query("CREATE TRIGGER set_hastext_u BEFORE UPDATE ON {libpolka} FOR EACH ROW SET NEW.hastext = LENGTH(NEW.Text) > 42");	
 }
