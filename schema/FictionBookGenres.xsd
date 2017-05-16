@@ -256,7 +256,14 @@
 			<xs:enumeration value="foreign_fantasy"/>
 			<xs:enumeration value="foreign_children"/>
 			<xs:enumeration value="foreign_contemporary"/>
+			<xs:enumeration value="foreign_home"/>
+			<xs:enumeration value="foreign_desc"/>
+			<xs:enumeration value="foreign_sf"/>
 			<xs:enumeration value="psy_personal"/>
+			<xs:enumeration value="psy_personal"/>
+			<xs:enumeration value="love_fantasy"/>
+			<xs:enumeration value="foreign_love"/>
+			<xs:enumeration value="love_fantasy"/>
       		</xs:restriction>
 	</xs:simpleType>
 </xs:schema>
