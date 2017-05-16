@@ -11,14 +11,14 @@ return [
 'libbook' => [
   'description' => 'Основная информация о файлах книг',
   'fields' => [
-    'bid' => 		['description' => 'PK', 'type' => 'serial',  'not null' => TRUE],
+    'bid' => 		['description' => 'PK', 'type' => 'serial',  'not null' => TRUE,  'unsigned' => TRUE],
     'FileSize' => 	['description' => 'Размер файла', 'type' => 'int',  'not null' => TRUE, 'default' => 0],
     'Time' => 		['description' => 'Время появления файла', 'type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP'],
     'Title' => 		['description' => 'Название книги', 'type' => 'varchar', 'length' => '254', 'not null' => TRUE, 'default' => ''],
     'Title1' => 	['description' => 'Дополнение к названию книги, полное: Title [Title1]', 'type' => 'varchar', 'length' => '254', 'not null' => TRUE, 'default' => '', ],
     'Lang' => 		['description' => 'Язык', 'type' => 'char', 'length' => '2', 'not null' => TRUE, 'default' => 'ru'],
     'SrcLang' =>    ['description' => 'Язык оригинала', 'type' => 'char', 'length' => '2', 'not null' => TRUE, 'default' => 'ru'],
-    'FileType' => 	['description' => 'Тип файла', 'type' => 'char', 'length' => '4', 'not null' => TRUE],
+    'FileType' => 	['description' => 'Тип файла', 'type' => 'char', 'length' => '4', 'not null' => TRUE, 'unsigned' => TRUE],
     'Year' => 		['description' => 'Год издания', 'type' => 'int', 'size' => 'small', 'not null' => TRUE, 'default' => 0, ],
     'Year1' => 		['description' => 'Год написания', 'type' => 'int', 'size' => 'small', 'not null' => TRUE, 'default' => 0, ],
     'Deleted' => 	['description' => 'Статус, битмаска, если не 0, то файл недоступен по той или иной причине', 'type' => 'char', 'length' => '1', 'not null' => TRUE, 'default' => '0', ],
@@ -100,10 +100,22 @@ return [
   'description' => 'Издательство',
   'fields' => [
     'bid' => ['type' => 'int', 'not null' => TRUE],
+    'pid' => ['type' => 'int', 'not null' => TRUE],
     'publisher' => ['type' => 'varchar', 'length' => '254', 'not null' => TRUE],
   ],
   'primary key' => ['bid'],
-  'indexes' => ['publisher' => ['publisher']],
+  'indexes' => ['publisher' => ['publisher'], 'pid' => ['pid']],
+],
+'libpublishers' => [
+  'description' => 'Издательства',
+  'fields' => [
+    'pid' => ['type' => 'serial', 'not null' => TRUE],
+    'title' => ['type' => 'varchar', 'length' => '99', 'not null' => TRUE],
+    'description' => ['type' => 'text', 'not null' => TRUE],
+    'info' => ['type' => 'varchar', 'length' => '999', 'not null' => TRUE],
+  ],
+  'primary key' => ['pid'],
+  'indexes' => ['title' => ['title']],
 ],
 'libdate' => [
   'description' => 'Дата издания, датой и вольной строкой',
@@ -275,6 +287,7 @@ return [
     'firstyear' => ['type' => 'int',  'not null' => TRUE],
     'lastyear' => ['type' => 'int',  'not null' => TRUE],
     'peryear' => ['type' => 'int',  'not null' => TRUE, 'default' => 12],
+	'aid'  =>   ['description' => 'Author ID', 'type' => 'int', 'not null' => TRUE, 'default' => 0],
   ],
   'primary key' => ['mid'],
   'unique keys' => ['title' => ['title']],
@@ -506,12 +519,12 @@ return [
   'description' => 'Лог деятельности пользователей, с возможностью отката',
   'fields' => [
     'ActionID' =>   ['type' => 'serial', 'not null' => TRUE, 'description' => t('Primary Key')],
-    'name' =>       ['type' => 'varchar', 'length' => 60, 'not null' => TRUE],
+    'name' =>       ['type' => 'varchar', 'length' => 60, 'not null' => TRUE, 'default' => ''],
     'Time' =>       ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP'],
-    'ActionSQL'  => ['type' => 'text'],
-    'ActionDesc' => ['type' => 'text'],
-    'ActionUndo' => ['type' => 'text'],
-    'bid' =>        ['type' => 'int',  'not null' => TRUE, 'default' => 0],
+    'ActionSQL'  => ['type' => 'text', 'not null' => TRUE],
+    'ActionDesc' => ['type' => 'text', 'not null' => TRUE],
+    'ActionUndo' => ['type' => 'text', 'not null' => TRUE],
+    'bid' =>        ['type' => 'int',  'not null' => TRUE],
   ],
   'primary key' => ['ActionID'],
   'indexes' => ['bid' => ['bid'], 'Time' => ['Time'], 'name' => ['name', 'Time']],
@@ -567,8 +580,8 @@ return [
     'cid' =>  ['type' => 'varchar', 'length' => '32', 'not null' => TRUE],
     'tag' =>  ['type' => 'char', 'length' => '12', 'not null' => TRUE, ],
     'time' => ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP'],
-    'value' =>['type' => 'longtext', 'not null' => TRUE, 'default' => ''],
-    'raw' =>  ['type' => 'longtext', 'not null' => TRUE, 'default' => ''],
+    'value' =>['type' => 'longtext', 'not null' => TRUE],
+    'raw' =>  ['type' => 'longtext', 'not null' => TRUE],
   ],
   'primary key' => ['cid'],
   'indexes' => ['tag' => ['tag'], 'time' => ['time']],
@@ -576,7 +589,7 @@ return [
 'libcachegen' => [
   'fields' => [
     'gid' => ['type' => 'int', 'not null' => TRUE],
-    'name' => ['name' => 'varchar', 'length' => '40', 'not null' => TRUE, ],
+    'name' => ['type' => 'varchar', 'length' => '40', 'not null' => TRUE, ],
   ],
   'indexes' => ['name' => ['name']],
 ],
@@ -610,7 +623,7 @@ return [
   'description' => 'Кэш советов "люди читавшие эту книгу так же читали...',
   'fields' => [
     'bid' =>    ['type' => 'int', 'not null' => TRUE, 'default' => 0],
-    'advice' => ['type' => 'varbinary', 'length' => '10000', 'not null' => TRUE, 'default' => ''],
+    'advice' => ['type' => 'varbinary', 'length' => '10000', 'not null' => TRUE],
     'Time' =>   ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP']
   ],
   'primary key' => ['bid'],
@@ -620,10 +633,12 @@ return [
   'fields' => [
     'ID' => ['type' => 'serial', 'not null' => TRUE],
     'Time' => ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP'],
-    'Books' => ['type' => 'text'],
-    'N' => ['type' => 'int', 'not null' => TRUE]
+    'Books' => ['type' => 'char', 'length' => 32, 'not null' => TRUE],
+    'N' => ['type' => 'int', 'not null' => TRUE], 
+	'description' => ['type' => 'text', 'not null' => TRUE]
   ],
-  'indexes' => ['iid' => ['ID'],'ibooks' => ['Books']],
+  'primary key' => ['ID'],
+  'indexes' => ['Time' => ['Time'],'N' => ['N'],'Books'=>['Books']],
 ],
 'libstat' => [
   'description' => 'Аггрегированная по месяцам статискика прочтения',
