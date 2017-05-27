@@ -1,0 +1,14 @@
+p.book {text-indent: 30px;  margin-bottom: 0pt; margin-top: 0pt; text-align : justify; }
+h1.book { font-size : 160%; font-style : normal; font-weight : bold; text-align : right; } /* Book title */
+h1.title{ font-size : 160%; font-style : normal; font-weight : bold; text-align : right; } /* Book title */
+h3.book { font-size : 150%; font-style : normal; font-weight : bold; text-align : center; padding-top : 12px; padding-bottom : 3px;} /* Title */
+h3.title{ font-size : 150%; font-style : normal; font-weight : bold; text-align : center; padding-top : 12px; padding-bottom : 3px;} /* Title */
+h5.book    { font-size : 110%; font-weight : bold; text-align : center; padding-top : 9px; } /* SubTitle */
+h5.subtitle{ font-size : 110%; font-weight : bold; text-align : center; padding-top : 9px; } /* SubTitle */
+blockquote { margin : 0.2em 4em 0.2em 4em }
+div.book { text-align : left }
+div.poem { margin-right : 25%; margin-left : 33%; margin-bottom : 0.8em; margin-top : 0.8em; }
+div.stanza { margin: 0.8em 0}
+blockquote.cite { margin-bottom : 0.2em; margin-top : 0.2em; }
+blockquote.epigraph {margin-right : 5em; margin-left : 50%;}
+blockquote.text-author { text-align : right; margin-right : 10%; margin-bottom : 0.3em; }
