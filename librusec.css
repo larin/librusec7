@@ -1,0 +1,146 @@
+input.form-submit {
+  border:solid #d1dbec;
+  background-color:#fbfcfe;
+  margin-left: 3pt;  
+}
+input.button {
+  border:solid #d1dbec;
+  background-color:#fbfcfe;
+  margin-left: 3pt;  
+}
+.genre {color: #6C7A8D;}  
+p.genre { margin-bottom: 0pt; }
+a.genre { 
+  margin-bottom: 0pt; 
+  margin-top: 0pt;  
+  font-size: 120%; 
+}
+.fast {
+  color: red;
+  font-weight: bold; 
+}
+
+h4 {
+  margin-bottom: 2pt; 
+}
+/* Sequence */
+h8{
+  color:#00005B; 
+  margin-top: 4pt;
+  font-size: 110%; 
+  text-decoration: none;
+}
+
+a.sequence { color:#00003B; }
+
+/* genres */
+h9 {
+/*  color:#6C7A8D; */
+  color:#5C6A8d;
+  margin-top: 4pt;
+  font-size: 90%; 
+  text-decoration: none;  
+}
+.size {  color:#bbbbbb;}
+#sidebar-right {/* word-wrap:break-word;*/ overflow:hidden; }
+img.bb-image { max-width:100%; max-height:100%; }
+
+#z0 {
+/*  background: url(/img/znak.gif) no-repeat;*/
+  background: url(/img/spriteme1.png) no-repeat;
+  background-position: -10px -10px;
+  width:15px;
+  height:15px;
+  float:left;
+  margin-top: 4px;
+}
+#z1 {
+/*  background: url(/img/znak1.gif) no-repeat;*/
+  background: url(/img/spriteme1.png) no-repeat;
+  background-position: -10px -152px;
+  width:15px;
+  height:15px;
+  float:left;
+  margin-top: 4px;
+}
+#z5 {
+/*  background: url(/img/znak5.gif) no-repeat;*/
+  background: url(/img/spriteme1.png) no-repeat;
+  background-position: -10px -117px;
+  width:15px;
+  height:15px;
+  float:left;
+  margin-top: 4px;
+}
+#fast {
+  background: url(/img/disk.png) no-repeat;
+  height:16px;
+  width:16px;
+}
+#progress {
+  background:#eeeeee;
+  border:1px solid #222222;
+  margin-top:20px;
+}
+#progressbar {
+  width:0px;
+  height:24px;
+  background:#333333;
+}
+/*advanced forum fix */
+.forum-post-info { height:auto;}
+.forum-post-wrapper { height:auto;}
+.post-info { height:auto;}
+.last-reply {
+  font-size: 0.9em;
+  line-height: 140%;
+  padding: 0 10px;
+  white-space: normal !important;
+  width: 130px;
+}
+div.bookrow {
+  text-indent:-100px; 
+  margin-left:100px;
+}
+div.bookrow1 {
+  text-indent:-25px; 
+  margin-left:25px;
+}
+#bgpp {
+  display:none; 
+  position:fixed; 
+  _position:absolute; 
+  height:100%; 
+  width:100%; 
+  top:0; left:0; 
+  background:#000000; 
+  border:1px solid #cecece; 
+  z-index:1;
+} 
+img.bookgraph {vertical-align: middle;display: inline;margin-left: 17px}
+select.bookrate {margin-left: 17px;}
+div.deletedbook {
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+  border-bottom-color: #DADCE0;
+}
+div.deletedbook:hover {
+  background-color: #BFC1C3;
+}
+ul.primary li {
+  float:left;	
+}
+div#booklist {
+  float:left;
+padding-top:0; 
+}
+div.tabs:after {
+  content: '';
+  display: block;
+  clear: both;
+}
+#block-librusec-abc, #block-system-main-menu {
+border: 0;
+padding:0;
+margin:0;	
+}	
