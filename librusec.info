@@ -6,5 +6,4 @@ version = 7.0
 core = 7.x
 dependencies[] = bwlist
 scripts[] = librusec.js 
-scripts[] = jquery.cookie.js
 stylesheets[all][] = librusec.css
