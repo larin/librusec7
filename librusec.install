@@ -215,10 +215,11 @@ return [
      'code' => ['type' => 'varchar', 'length' => '45', 'not null' => TRUE, 'default' => ''],
      'gdesc' => ['type' => 'varchar', 'length' => '99', 'not null' => TRUE, 'default' => ''],
      'edesc' => ['type' => 'varchar', 'length' => '99', 'not null' => TRUE, 'default' => ''],
+     'gidm' =>  ['type' => 'int',  'not null' => TRUE],
   ],	 
   'primary key' => ['gid'],
   'unique keys' => ['code' => ['code']],
-  'indexes' => ['edesc' => ['edesc'], 'gdesc' => ['gdesc']],
+  'indexes' => ['edesc' => ['edesc'], 'gdesc' => ['gdesc'], 'gidm' => ['gidm']],
 ],
 'libgenre' => [
   'description' => 'Классификатор Жанр-Книга',
@@ -228,14 +229,6 @@ return [
   ],
   'primary key' => ['bid', 'gid'],
   'indexes' => ['gid' => ['gid']],
-],
-'libgenremeta' => [
-  'description' => 'Иерархия жанров/метажанры',
-  'fields' => [
-    'gid' =>  ['type' => 'int',  'not null' => TRUE, 'default' => 0],
-    'gidm' => ['type' => 'int',  'not null' => TRUE, 'default' => 0]
-  ],
-  'unique keys' => ['g' => ['gid', 'gidm']]
 ],
 
 // Авторские и издательские серии
