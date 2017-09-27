@@ -154,6 +154,7 @@ function libAJAXlist() : string {
   if ($r = libcg($cid, 55555)) pe($r);
   $tables = ['avtor'];
   $W = $p->where;
+  $pure_a = 1;
   if ($t = p('t')) $W .= " AND Title LIKE '".str_replace('*','%',$t)."%'";
   if ($t = p('ln')) $W .= " AND LastName ".($t == 'Прочее' ?  "< 'Z' " : "LIKE '$t%'");
   if ($t = p('fn')) $W .= " AND FirstName LIKE '$t%'";
@@ -167,6 +168,7 @@ function libAJAXlist() : string {
       }  
     }
     $W .= " AND ($wst)";
+	$pure_a = 0;
   }  
   if ($t = p('e')) {
     $wst = '';
@@ -177,6 +179,7 @@ function libAJAXlist() : string {
       }  
     }
     $W .= " AND ($wst)";
+	$pure_a = 0;
   } 
   if ($t = p('s1')) $W .= " AND FileSize >= ".($t*1024);
   if ($t = p('s2')) $W .= " AND FileSize <= ".($t*1024);
@@ -190,6 +193,7 @@ function libAJAXlist() : string {
       }  
     }
     $W .= " AND ($wst)";
+  	$pure_a = 0;
   }
   if ($t = p('y')) {
     $wst = '';
@@ -202,13 +206,16 @@ function libAJAXlist() : string {
       }  
     }
     $W .= " AND ($wst)";
+	$pure_a = 0;
   }
-  if ($t = p('gender')) $W .= " AND gender = '".($t == 'u' ? '' : $t)."'";
-  $W .= ' AND NOT Deleted AND NOT ReplacedBy';
+  if ($t = p('gender')) {
+	$W .= " AND gender = '".($t == 'u' ? '' : $t)."'";
+	$pure_a = 0;
+  }
   if (get('st1')) $O = "Title"; 
   elseif (get('st2')) $O = "Title DESC"; 
-  elseif (get('sln1')) $O = "LastName, FirstName, MiddleName, Title"; 
-  elseif (get('sln2')) $O = "LastName DESC, FirstName, MiddleName, Title"; 
+  elseif (get('sln1')) $O = "LastName, FirstName, MiddleName"; 
+  elseif (get('sln2')) $O = "LastName DESC, FirstName, MiddleName"; 
   elseif (get('sfn1')) $O = "FirstName, LastName, MiddleName"; 
   elseif (get('sfn2')) $O = "FirstName DESC, LastName, MiddleName"; 
   elseif (get('smn1')) $O = "MiddleName, LastName, Firstname"; 
@@ -225,6 +232,10 @@ function libAJAXlist() : string {
   elseif (get('sy2')) $O = "Year DESC, Title DESC"; 
   else $O = 'bid DESC';
 
+  foreach(['st', 'ss', 'se', 'sd', 'sy', 's', 't'] as $qq) 
+    if (get($qq) || get('s'.$qq.'1') || get('s'.$qq.'2')) 
+	  $pure_a = 0;	
+
   foreach (array('ln', 'fn', 'mn', 'gender') as $qq)  
     if (get($qq) || get('s'.$qq.'1') || get('s'.$qq.'2')) 
       $tables[1] = 'avtors';
@@ -236,22 +247,32 @@ function libAJAXlist() : string {
   $ll = '';  
   foreach($_GET as $pp => $vv) if ($pp != 'q' && $pp != 'type') $ll .= "$pp=$vv&";
   $ll = rtrim($ll, '&');
-  if (get('type')=='a') {
-    $r .= " Ссылка: <a href=\"/a/?$ll\">http://lib.rus.ec/a/?$ll</a><br>";
-    $tables[0] = 'avtor';
-	$books = DB('book', $tables)->paged("a.aid, COUNT(b.bid) as N", "$W GROUP BY 1 ORDER BY $O");
-    foreach($books as $a1)
-	  $r .= avl($a1->aid, ' ', 1)." ($a1->N)<br>\n";
+  if (get('type')=='a' && $pure_a) {
+	$W .= " AND NOT main";
+	if ($O === 'bid DESC') $O = 'books DESC';
+	$books = DB('avtors', $tables)->paged('aid, books', "$W GROUP BY 1,2 ORDER BY $O ");
+    foreach($books as $a1) {
+	  $r .= avl($a1->aid, ' ', 1);
+	  if ($a1->books) $r .= " ($a1->books)";
+	  $r .= "<br>\n";
+	}  
   } else { 
-    if (!isset($tables[1])) unset($tables[0]);
-	if (isset($tables[2])) $W .= " GROUP BY 1";
-    $books = DB('book', $tables)->paged("b.bid", "$W ORDER BY $O");
-	$r .= downloadall('up') . ' ' . AnnChkbox('', 'libRB()');
-    $r .= " Ссылка: <a href=\"/b/?$ll\">http://lib.rus.ec/b/?$ll</a><br>";
-    foreach($books as $bid)
-	  $r .= DoLibRow($bid, 'authors checkbox genre annotation list '); 
-	$r .= downloadall('down')."</form>";  
-  }  
+    $W .= ' AND NOT Deleted AND NOT ReplacedBy';
+    if (get('type')=='a') {
+      $r .= " Ссылка: <a href=\"/a/?$ll\">http://lib.rus.ec/a/?$ll</a><br>";
+      $tables[0] = 'avtor';
+	  $books = DB('book', $tables)->paged("a.aid, COUNT(b.bid) as N", "$W GROUP BY 1 ORDER BY $O");
+      foreach($books as $a1) $r .= avl($a1->aid, ' ', 1)." ($a1->N)<br>\n";
+    } else { 
+      if (!isset($tables[1])) unset($tables[0]);
+	  if (isset($tables[2])) $W .= " GROUP BY 1";
+      $books = DB('book', $tables)->paged("b.bid", "$W ORDER BY $O");
+  	  $r .= downloadall('up') . ' ' . AnnChkbox('', 'libRB()');
+      $r .= " Ссылка: <a href=\"/b/?$ll\">http://lib.rus.ec/b/?$ll</a><br>";
+      foreach($books as $bid) $r .= DoLibRow($bid, 'authors checkbox genre annotation list '); 
+	  $r .= downloadall('down')."</form>";  
+    }
+  }	
   $r .= "</div><br>";
   if ($books) {
     $pager = theme('pager');
