@@ -36,7 +36,7 @@ function libRSS($p) {
       $table = $p->table;
       $where = $p->where;
     }  
-    foreach(DB($table, 'book')->select('DISTINCT b.bid,Title,UNIX_TIMESTAMP(b.Time) AS T,FileSize', "$where$p->ltsql AND NOW()-b.Time > 10000 ORDER BY b.Time DESC LIMIT 50") as $a1) {
+    foreach(DB($table, 'book')->select('DISTINCT b.bid,Title,UNIX_TIMESTAMP(b.Time) AS T,FileSize', "$where$p->ltsql AND NOW()-b.Time BETWEEN 1000 AND 100000000 ORDER BY b.Time DESC LIMIT 50") as $a1) {
       $b = $a1->bid;
       $a = AvtorName(libaid($b));
       $g = libgen(DB('genre')->gid($b), 'gdesc'); 
