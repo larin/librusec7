@@ -7,13 +7,15 @@ module_load_include('inc', 'librusec', 'opds');
 function libGenre(string $g = '', string $act = '') : string {
   $asql = libShowEN();
   if ($g == 'opds') {
-    foreach(DB('genres')->select('gid,code,gdesc', 'gid>1000') as $a1) 
-      $entrys[] = ['link' => "g/$a1->code", 'title' => $a1->gdesc, 'updated' => DB('book','genre','genremeta')->Time("gidm=$a1->gid ORDER BY Time DESC")];
+    foreach(DB('genres')->select('gid,code,gdesc', 'gid>1000') as $a1) {
+	  $gids = DB('genres')->get("GROUP_CONCAT(gid)", "gidm=?", $a1->gid);
+      $entrys[] = ['link' => "g/$a1->code", 'title' => $a1->gdesc, 'updated' => DB('book','genre')->Time("gid IN($gids) ORDER BY Time DESC")];
+	} 
     return libOPDS('genre', 'Группы жанров', 'g', '', '', $entrys);
   }
   $r = $gidm = '';
   if (substr($g, -3) == 'all' && $act == 'opds' && ($gm = libgen($g))) { 
-    foreach(DB('genremeta')->gidS("gidm=$gm->gid") as $gid) {
+    foreach(DB('genres')->gidS("gidm=$gm->gid") as $gid) {
       $g = libgen($gid);
       $entrys[] = array('link'=>"g/$g->code", 'title'=>$g->gdesc, 'updated'=>DB('book','genre')->Time("gid=$g->gid ORDER BY Time DESC"));
     }
@@ -26,11 +28,12 @@ function libGenre(string $g = '', string $act = '') : string {
     $cid = 'genre'.$asql.$gg.$gidm.'v'.GetUserOpt('v');
     if ($r = libcg($cid, 12*3600, 'lock')) return $r;
 	if ($u) $r .= "Сортировать по ".FormSelect("useroptv", "setuseropt('v')", ['количеству книг', 'названию жанра'], GetUserOpt('v') ? [0,1] : [1,0]); 
-    foreach(DB('genremeta', 'genre')->select("gidm, SUM(1)", ($gidm?"gidm=$gidm":"1")." GROUP BY 1 ORDER BY 2 DESC") as $a1) {
-      $meta = DB('genres')->get('*', $a1->gidm);
+    foreach(DB('genres')->select("gidm, SUM(1)", ($gidm?"gidm=$gidm":"gidm")." GROUP BY 1 ORDER BY 2 DESC") as $a1) {
+      $meta = DB('genres')->row($a1->gidm);
+	  if (!$meta) stop($a1);
       $r .= "\n<h3>".RSSlink("/g/$meta->code/")."$meta->gdesc</h3>\n<ul>\n";
-      foreach(GetUserOpt('v') ?  DB('genres', 'genremeta')->select('gid,code,gdesc', "gidm=$a1->gidm ORDER BY 3")
-				  		      :  DB('genres', 'genre', 'genremeta')->select('gid,code,gdesc,sum(1) n', "gidm=$a1->gidm GROUP BY 1,2,3 ORDER BY 4 DESC") as $g1) {
+      foreach(GetUserOpt('v') ?  DB('genres')->select('gid,code,gdesc', "gidm=$a1->gidm ORDER BY 3")
+				  		      :  DB('genres', 'genre')->select('gid,code,gdesc,sum(1) n', "gidm=$a1->gidm GROUP BY 1,2,3 ORDER BY 4 DESC") as $g1) {
         $gc = $g1->code;
         if ($gg && DB('userblackgenre')->gid("uid=? AND gid=?", $u, $g1->gid)) {
           $r .= "\n<li><a name=$gc>$g1->gdesc ($gc) <a href=/g/$gc/show>(открыть)</a>";
@@ -66,7 +69,7 @@ function libGenre(string $g = '', string $act = '') : string {
       $r = "<a href=/g/$g1->gid/hide>(добавить жанр '<b>$g1->gdesc</b>' в чёрный список)</a> &nbsp; <a href=/g>(полный список жанров)</a><br>".$r;
   }
   $p = $g == 'null' ? libParseArgs("g/null", 'Без жанра', 'genre', "ISNULL(gid)") : 
-     libParseArgs("g/$g1->code", $g1->gdesc, 'genre', ($g1->gid > 100000 ? "gid IN(".implode(',',DB('genremeta')->gidS("gidm=$g1->gid")).")" : "gid=$g1->gid"));
+     libParseArgs("g/$g1->code", $g1->gdesc, 'genre', ($g1->gid > 100000 ? "gid IN(".implode(',',DB('genres')->gidS("gidm=$g1->gid")).")" : "gid=$g1->gid"));
   if ($p->sorttype == 'a') $p->order = "LastName, FirstName, MiddleName, Title";
   if ($p->sorttype == '1') $p->order = "Time DESC";
   set_title($g1->gdesc.$p->lty);
