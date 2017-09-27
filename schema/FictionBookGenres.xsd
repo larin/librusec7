@@ -11,6 +11,8 @@
 			<xs:enumeration value="sf_cyberpunk"/>
 			<xs:enumeration value="sf_space"/>
 			<xs:enumeration value="sf_social"/>
+			<xs:enumeration value="psy_social"/>
+			<xs:enumeration value="foreign_edu"/>
 			<xs:enumeration value="sf_horror"/>
 			<xs:enumeration value="sf_humor"/>
 			<xs:enumeration value="sf_fantasy"/>
