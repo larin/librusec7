@@ -76,9 +76,7 @@ function libGenre(string $g = '', string $act = '') : string {
   $page = $_GET['page'] ?? 0;
   if (!$page && !$p->lang) if ($ann = libReadDesc($g1->gid, 'g')) $r .= "<br>".showblocklink("blg", $g1->gid, "Описание", $_COOKIE['blg'] ?? 0 == 1 ? '' : $ann);
   $r .= downloadall('up', $p->n, $g1->code)." &nbsp; ".$p->langtype.$p->sort.AnnChkbox().$p->rdmes."<br>"; 
-  if ($g1->gid > 10000)
-    $ggg = DB($p->table)->paged('DISTINCT bid,Time,Year', "$p->where$p->ltsql ORDER BY $p->order");
-  elseif ($g1->gid)
+  if ($g1->gid)
     $ggg = DB($p->table)->paged('DISTINCT bid,Time,Year', "$p->where$p->ltsql ORDER BY $p->order");
   else   
     $ggg = DB('libbook b LEFT JOIN libgenre g USING(bid)', $p->table)->paged('bid,Time,Year', "$p->where$p->ltsql AND ISNULL(gid) ORDER BY $p->order");
