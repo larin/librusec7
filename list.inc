@@ -140,7 +140,11 @@ $r .= "
 <td><input id=e size=4 onKeyUp=libRB() value='$e'>
 <td><input id=lng size=2 onKeyUp=libRB() value='$lng'>
 <td>
-<td><select id=gender onchange=libRB()><option value=''>Все<option value=f>Женщина<option value=m>Мужчина<option value=g>Группа<option value=u>неизвестен
+<td><select id=gender onchange=libRB()><option value=''>Все
+  <option value=f".($gender == 'f' ? ' selected' : '').">Женщина
+  <option value=m".($gender == 'm' ? ' selected' : '').">Мужчина
+  <option value=g".($gender == 'g' ? ' selected' : '').">Группа
+  <option value=u".($gender == 'u' ? ' selected' : '').">неизвестен
 ".tt2;
   $r .= "</form>\n<div id=books><br></div>";
   $r .= "<script>jQuery(document).ready(libRB)</script>"; 
@@ -157,8 +161,11 @@ function libAJAXlist() : string {
   $pure_a = 1;
   if ($t = p('t')) $W .= " AND Title LIKE '".str_replace('*','%',$t)."%'";
   if ($t = p('ln')) $W .= " AND LastName ".($t == 'Прочее' ?  "< 'Z' " : "LIKE '$t%'");
+  elseif (get('sln1') || get('sln2')) $W .= " AND LastName"; 
   if ($t = p('fn')) $W .= " AND FirstName LIKE '$t%'";
+  elseif (get('sfn1') || get('sfn2')) $W .= " AND FirstName"; 
   if ($t = p('mn')) $W .= " AND MiddleName LIKE '$t%'";
+  elseif (get('smn1') || get('smn2')) $W .= " AND MiddleName"; 
   if ($t = p('g')) {
     $wst = '';
     foreach (explode (',', $t) as $l) {
