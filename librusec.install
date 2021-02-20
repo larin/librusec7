@@ -31,6 +31,7 @@ return [
     'Modified' => 	['description' => 'Время последнего изменения связанных сущностей', 'type' => 'timestamp', 'not null' => TRUE, 'default' => '0000-00-00 00:00:00' ],
     'authors' => 	['description' => 'Количество авторов', 'type' => 'int', 'not null' => TRUE, 'default' => 1],
 	'ReplacedBy' => ['description' => 'Замена', 'type' => 'int', 'not null' => TRUE, 'default' => 0],
+    'metaphone' => 		['description' => 'Название книги', 'type' => 'varchar', 'length' => '254', 'not null' => TRUE, 'default' => ''],
   ],
   'primary key' => ['bid'],
   'unique keys' => ['md5' => ['md5']],
@@ -45,6 +46,7 @@ return [
     'Title' => ['Title'],
     'Title1' => ['Title1'],
     'Year' => ['Year'],
+	'metaphone' => ['metaphone']
   ]
 ],
 'librel' => [
@@ -600,9 +602,13 @@ return [
   'fields' => [
     'aid' =>  ['type' => 'int',  'not null' => TRUE],
     'name' => ['type' => 'varchar', 'length' => '254', 'not null' => TRUE],
+    'metaphone' => ['type' => 'varchar', 'length' => '254', 'not null' => TRUE],
   ],
   'unique keys' => ['aid' => ['aid', 'name']],
-  'indexes' => ['name' => ['name']],
+  'indexes' => [
+    'name' => ['name'],	
+	'metaphone' => ['metaphone']
+  ],
 ],
 'libN' => [
   'description' => 'Кэш количества скачиваний книги, может быть пересчитан по liblog',
@@ -714,7 +720,26 @@ return [
   'primary key' => ['syncid'],
   'indexes' => ['id' => ['id']],
 ],
-
+'libmetka' => [
+  'description' => 'Примечания библиотекарей',
+  'fields' => [
+    'id' => [
+      'description' => 'ID сущности, a1 - автор #1, b2 - книга, etc',
+      'type' => 'char',
+      'length' => '10',
+      'not null' => TRUE,
+    ],
+    'uid' => [ 'type' => 'int', 'not null' => TRUE],
+    'metka' => [
+      'description' => 'Заметка',
+      'type' => 'char',
+      'length' => '254',
+      'not null' => TRUE,
+    ],
+    'time' => ['type' => 'timestamp', 'not null' => TRUE, 'default' => 'CURRENT_TIMESTAMP'],
+  ],
+  'primary key' => ['syncid'],
+],
 ];
 }
 
