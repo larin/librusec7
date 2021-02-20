@@ -13,8 +13,15 @@ function lib404() {
   $fixed = ['24' => 'stat/24', 'w' => '/stat/w', 'rss' => 'new/ru/rss'];
   $q = ''; 
   global $formats;
-  if (strlen($path) >= 2) {
-    $a0 = explode('/', $path)[0];
+  $a = explode('/', $path);
+  $a0 = $a[0];
+  if (($a0 == 'user') && ($uid = DB('users')->uid('mail=? OR name=?', $a[1], $a[1]))) {
+    $_GET['q'] = "user/$uid";    
+    menu_execute_active_handler();
+	drupal_exit();
+  }
+  
+  if (mb_strlen($a0) >= 2) {
     if (isset($fixed[$path])) $q = $fixed[$path];
     elseif (is_lang($a0) || isset($formats[$a0])) $q = 'book/'.$path;
     elseif ($g = libgen($a0, 'code')) $q = 'g/'.$path; 
@@ -22,13 +29,17 @@ function lib404() {
     elseif ($b = DB('book', 'N')->bid("Title=? AND NOT Deleted ORDER BY N DESC", $a0)) $q = 'b/'.$b;
     elseif ($s = DB('seqs')->sid("seqname=?", $a0)) $q = 's/'.$s;
     elseif ($m = DB('mags')->mid("title=?", $a0)) $q = 'm/'.$m;
-    elseif (preg_match('|src/.+/\d+/(\d+)\.|', $path, $m)) $q = "b/$m[1]"; 
     elseif (preg_match('/(\d+)\.html$/', $path, $m)) $q = "a/$m[1]";
     elseif (preg_match('|pl/g.pl\?(.+)|', $path, $m)) $q = "g/$m[1]";
     elseif (preg_match('|search.pl\?ask=(.+)|', $path, $m)) $q = "search/$m[1]";
     elseif (preg_match('|search.pl\??(.*)|', $path, $m)) $q = "search/$m[1]";
+    elseif (($mp = metaphoneru($a0)) && ($a = DB('avtors', 'aname')->aid("metaphone=? ORDER BY books DESC", $mp))) $q = 'a/'.$a;
+    elseif ($mp && ($b = DB('book')->bid("metaphone=? AND NOT Deleted ORDER BY bid DESC", $mp))) $q = 'b/'.$b;
 	elseif (strlen($a0) == 32 && ctype_alnum($a0)) $q = 'b/'.$a0; // похоже на md5
+  } elseif($a0 == 'c') {
+    if (preg_match('|c/\d+/.*\.(\d\d\d\d+)\.|', $path, $m)) $q = "b/$m[1]/download";	  
   }
+
   if ($q && $q != $path) {   
     $_GET['q'] = $q;    
     menu_execute_active_handler();
